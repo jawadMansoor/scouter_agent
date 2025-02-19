@@ -1,0 +1,22 @@
+[project]
+name = "scouter_agent"
+version = "0.0.0"
+description = "To create Scout agents for LSS and store them in pandas."
+authors = [
+    {name = "jawadMansoor",email = "jawadmansoor@Outlook.com"}
+]
+license = {text = "proprietery"}
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "opencv-python (>=4.11.0.86,<5.0.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "pillow (>=11.1.0,<12.0.0)",
+    "pytesseract (>=0.3.13,<0.4.0)",
+    "pyautogui (>=0.9.54,<0.10.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
