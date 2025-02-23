@@ -13,10 +13,25 @@ dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "pillow (>=11.1.0,<12.0.0)",
     "pytesseract (>=0.3.13,<0.4.0)",
-    "pyautogui (>=0.9.54,<0.10.0)"
+    "pyautogui (>=0.9.54,<0.10.0)",
+    "easyocr (>=1.7.2,<2.0.0)",
+    "torch (>=2.6.0,<3.0.0)",
+    "torchvision (>=0.21.0,<0.22.0)",
+    "torchaudio (>=2.6.0,<3.0.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch_repo"
+url = "https://download.pytorch.org/whl/cu118"
+priority = "supplemental"
+
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch_repo"}
+torchvision = {source = "pytorch_repo"}
+torchaudio = {source = "pytorch_repo"}
