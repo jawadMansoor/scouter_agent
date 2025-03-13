@@ -3,11 +3,27 @@ import numpy as np
 import subprocess
 import pytesseract
 import asyncio
+import multiprocessing
+import subprocess
+import time
+from datetime import datetime
 
 # Function to capture screen using ADB
 def capture_screen(r,c):
     subprocess.call(f"adb exec-out screencap -p > ../../temp/screen_{r}_{c}.png", shell=True)
     return ignore_borders(cv2.imread(f"../../temp/screen_{r}_{c}.png"))
+
+def continuous_screenshots(stop_event, screenshot_interval=0.1):
+    screenshot_count = 0
+    while not stop_event.is_set():
+        # Capture screenshot
+        filename = f"""screenshot_{datetime.now().strftime("%Y%m%d_%H%M%S_%f")}.png"""
+        subprocess.call(f"adb exec-out screencap -p > ../../temp/{filename}.png", shell=True)
+        print(f"Captured {filename}")
+        screenshot_count += 1
+
+        # Wait for the next screenshot
+        time.sleep(screenshot_interval)
 
 def ignore_borders(image):
     image_shape = image.shape
@@ -20,18 +36,13 @@ def ignore_borders(image):
     # print(image_out.shape)
     return image_out
 
-async def swipe(x1, y1, x2, y2, duration=500):
+def swipe(x1, y1, x2, y2, duration=500):
     command = f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}"
-    process = await asyncio.create_subprocess_shell(command)
-    await process.wait()
+    print(f"Swiped from ({x1}, {y1}) to ({x2}, {y2})")
+    subprocess.call(command)
 
-# Asynchronous function to capture a screenshot
-async def capture_screenshot(filename):
-    command = f"adb exec-out screencap -p > {filename}"
-    process = await asyncio.create_subprocess_shell(command)
-    await process.wait()
 
-async def scroll_and_capture():
+def scroll_map(stop_event, swipe_interval=0.1):
     tasks = []
     x1 = 500
     x2 = 300
@@ -42,25 +53,51 @@ async def scroll_and_capture():
     screenshot_delay = 20  # Delay between screenshots (in seconds)
     screenshot_count = 0  # Counter for screenshot filenames
 
-    for i in range(10):  # Scroll 5 times
+    while not stop_event.is_set():  # Scroll 5 times
         # Swipe right (adjust coordinates as needed)
-        await swipe(x1, y1, x2, y2, scroll_delay)
-        # Wait for the map to stabilize (adjust sleep time as needed)
-        for j,_ in enumerate(range(int(scroll_delay/screenshot_delay))):
-            # Capture screenshot
-            await capture_screenshot(f"screenshot_{i}_{j}.png")
-            # await asyncio.sleep(screenshot_delay/1000)
+        swipe(x1, y1, x2, y2, scroll_delay)
+        time.sleep(swipe_interval)
 
-    # Run all tasks concurrently
-    await asyncio.gather(*tasks)
 
 # Main function to run the program
-async def main():
-    await scroll_and_capture()
+def main():
+    # Create a stop event to signal when to stop the processes
+    stop_event = multiprocessing.Event()
+
+    # Create processes for screen capture and swiping
+    capture_process = multiprocessing.Process(
+        target=continuous_screenshots,
+        args=(stop_event,)
+    )
+    swipe_process = multiprocessing.Process(
+        target=scroll_map,
+        args=(stop_event,)
+    )
+
+    # Start the processes
+    capture_process.start()
+    swipe_process.start()
+
+    try:
+        # Let the processes run for a while (e.g., 10 seconds)
+        print("test")
+    except KeyboardInterrupt:
+        print("Stopping processes...")
+    finally:
+        # Signal the processes to stop
+        stop_event.set()
+
+        # Wait for the processes to finish
+        capture_process.join()
+        swipe_process.join()
+
+        print("All processes stopped.")
 
 # Run the program
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
+
 
 # #Display the image
 # def show_screen(image):
