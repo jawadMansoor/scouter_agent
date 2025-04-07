@@ -4,10 +4,13 @@ import subprocess
 import pytesseract
 import asyncio
 
-# Function to capture screen using ADB
-def capture_screen(r,c):
-    subprocess.call(f"adb exec-out screencap -p > ../../temp/screen_{r}_{c}.png", shell=True)
-    return ignore_borders(cv2.imread(f"../../temp/screen_{r}_{c}.png"))
+from pathlib import Path
+TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp"
+
+def capture_screen(r, c):
+    file_path = TEMP_DIR / f"screen_{r}_{c}.png"
+    subprocess.call(f"adb exec-out screencap -p > {file_path}", shell=True)
+    return ignore_borders(cv2.imread(str(file_path)))
 
 def ignore_borders(image):
     image_shape = image.shape
@@ -38,7 +41,7 @@ async def scroll_and_capture():
     y1 = 341
     y2 = int((x1 - x2) * -0.495726496 * 1.005 + y1)
 
-    scroll_delay = 100  # Delay between swipes (in seconds)
+    scroll_delay = 100  # D89*elay between swipes (in seconds)
     screenshot_delay = 20  # Delay between screenshots (in seconds)
     screenshot_count = 0  # Counter for screenshot filenames
 
@@ -48,8 +51,7 @@ async def scroll_and_capture():
         # Wait for the map to stabilize (adjust sleep time as needed)
         for j,_ in enumerate(range(int(scroll_delay/screenshot_delay))):
             # Capture screenshot
-            await capture_screenshot(f"screenshot_{i}_{j}.png")
-            # await asyncio.sleep(screenshot_delay/1000)
+            tasks.append(capture_screenshot(f"screenshot_{i}_{j}.png"))
 
     # Run all tasks concurrently
     await asyncio.gather(*tasks)
