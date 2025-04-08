@@ -14,19 +14,18 @@ def capture_screen(r, c):
 
 def ignore_borders(image):
     image_shape = image.shape
-    # print(image_shape)
     clip_right = int(0.037 * image_shape[0])
     clip_left = int(0.04 * image_shape[0])
-    clip_bot = int(0.08* image_shape[1])
+    clip_bot = int(0.08 * image_shape[1])
     clip_top = int(0.08 * image_shape[1])
-    image_out = image[clip_top:-clip_bot,clip_right:-clip_left,:]
-    # print(image_out.shape)
+    image_out = image[clip_top:-clip_bot, clip_right:-clip_left, :]
     return image_out
 
-async def swipe(x1, y1, x2, y2, duration=500):
-    command = f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}"
-    process = await asyncio.create_subprocess_shell(command)
-    await process.wait()
+# async def swipe(x1, y1, x2, y2, duration=500):
+#     command = f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}"
+#     process = await asyncio.create_subprocess_shell(command)
+#     await process.wait()
+
 
 # Asynchronous function to capture a screenshot
 async def capture_screenshot(filename):

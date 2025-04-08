@@ -1,16 +1,14 @@
-# This is a sample Python script.
+from scouter_agent.application.services.map_scouter_service import MapScouterService
+from scouter_agent.infrastructure.map_navigator import MapNavigator
+from scouter_agent.infrastructure.map_explorer import MapExplorer
+from scouter_agent.screen_controller.screen_gestures import swipe
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def main():
+    navigator = MapNavigator(swipe_executor=swipe)
+    explorer = MapExplorer(navigator=navigator, total_rows=10, total_columns=10)
+    service = MapScouterService(explorer)
 
+    service.run()
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    main()

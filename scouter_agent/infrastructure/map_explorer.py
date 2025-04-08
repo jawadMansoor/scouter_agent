@@ -1,5 +1,8 @@
 import asyncio
-from scouter_agent.navigation.map_navigator import MapNavigator, Direction
+from scouter_agent.infrastructure.map_navigator import MapNavigator, Direction
+from scouter_agent.screen_controller.screen_gestures import swipe
+# other imports remain the same
+
 from typing import Callable, Optional
 
 
