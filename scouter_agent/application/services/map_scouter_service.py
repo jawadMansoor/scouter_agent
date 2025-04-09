@@ -5,9 +5,9 @@ class MapScouterService:
     def __init__(self, explorer: MapExplorer):
         self.explorer = explorer
 
-    def run(self):
+    async def run(self):
         # Start exploring the map
-        self.explorer.explore()
+        await self.explorer.explore()
 
     def process_tile(self, row: int, col: int) -> MapTile:
         # Process the map tile here (e.g., save, analyze, or detect objects)

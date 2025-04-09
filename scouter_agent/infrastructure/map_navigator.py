@@ -12,7 +12,7 @@ class MapNavigator:
     def __init__(
         self,
         swipe_executor,
-        x1: int = 500,
+        x1: int = 600,
         x2: int = 300,
         y1: int = 341,
         swipe_duration: int = 500,

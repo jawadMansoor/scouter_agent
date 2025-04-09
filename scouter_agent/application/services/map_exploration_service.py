@@ -1,9 +1,9 @@
 import asyncio
 from typing import Optional
 
-from scouter_agent.domain.entities.tile import Tile
+from scouter_agent.domain.tile import Tile
 from scouter_agent.domain.services.tile_processor import TileProcessor
-from scouter_agent.infrastructure.map_navigator import MapNavigator, Direction
+from scouter_agent.infrastructure.map_navigator import MapNavigator
 from scouter_agent.infrastructure.map_explorer import MapExplorer
 from scouter_agent.object_recognizer.detect_objects import capture_screen
 
