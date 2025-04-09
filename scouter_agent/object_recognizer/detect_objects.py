@@ -9,6 +9,7 @@ TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp"
 
 def capture_screen(r, c):
     file_path = TEMP_DIR / f"screen_{r}_{c}.png"
+    print(file_path)
     subprocess.call(f"adb exec-out screencap -p > {file_path}", shell=True)
     return ignore_borders(cv2.imread(str(file_path)))
 
@@ -21,10 +22,10 @@ def ignore_borders(image):
     image_out = image[clip_top:-clip_bot, clip_right:-clip_left, :]
     return image_out
 
-# async def swipe(x1, y1, x2, y2, duration=500):
-#     command = f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}"
-#     process = await asyncio.create_subprocess_shell(command)
-#     await process.wait()
+async def swipe(x1, y1, x2, y2, duration=500):
+    command = f"adb shell input swipe {x1} {y1} {x2} {y2} {duration}"
+    process = await asyncio.create_subprocess_shell(command)
+    await process.wait()
 
 
 # Asynchronous function to capture a screenshot
@@ -61,7 +62,8 @@ async def main():
 
 # Run the program
 if __name__ == "__main__":
-    asyncio.run(main())
+    capture_screen(0,0)
+    # asyncio.run(main())
 
 # #Display the image
 # def show_screen(image):
