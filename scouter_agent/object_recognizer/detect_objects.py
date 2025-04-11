@@ -34,6 +34,23 @@ async def capture_screenshot(filename):
     process = await asyncio.create_subprocess_shell(command)
     await process.wait()
 
+
+def capture_fullscreen():
+    """Captures the full screen and returns a processed image."""
+    from datetime import datetime
+    from pathlib import Path
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = TEMP_DIR / f"capture_{timestamp}.png"
+
+    subprocess.call(f"adb exec-out screencap -p > {file_path}", shell=True)
+    image = cv2.imread(str(file_path))
+    if image is not None:
+        return ignore_borders(image)
+    return None
+
+
 async def scroll_and_capture():
     tasks = []
     x1 = 500

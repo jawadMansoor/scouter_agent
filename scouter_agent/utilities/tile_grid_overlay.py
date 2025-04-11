@@ -23,7 +23,7 @@ def draw_tile_grid(image, affine_matrix, tile_rows=40, tile_cols=40):
 
 if __name__ == '__main__':
     image_path = "../../temp/skeleton_image.png"
-    model_path = "tile_affine_model.npy"
+    model_path = "../models/tile_affine_model.npy"
 
     image = cv2.imread(image_path)
     affine_matrix = load_affine_matrix(model_path)

@@ -39,7 +39,7 @@ def load_affine_matrix(filepath):
 if __name__ == '__main__':
     image_path = "../../temp/skeleton_image.png"
     annotation_file = "tile_annotations.json"
-    model_file = "tile_affine_model.npy"
+    model_file = "../models/tile_affine_model.npy"
 
     image = cv2.imread(image_path)
     skeleton_gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
