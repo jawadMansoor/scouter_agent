@@ -62,7 +62,7 @@ async def main():
 
 # Run the program
 if __name__ == "__main__":
-    capture_screen(0,0)
+    capture_screen(10,10)
     # asyncio.run(main())
 
 # #Display the image
