@@ -1,6 +1,6 @@
-from scouter_agent.application.services.map_scouter_service import MapScouterService
+from scouter_agent.application.services.screenshot_scouting_service import ScreenshotScoutingService
+from scouter_agent.infrastructure.map_explorer import MapExplorer
 from scouter_agent.infrastructure.map_navigator import MapNavigator
-from scouter_agent.infrastructure.map_explorer import MapExplorer, Direction
 from scouter_agent.domain.tile_geometry import TileGeometry
 from scouter_agent.screen_controller.screen_gestures import swipe
 import asyncio
@@ -20,13 +20,14 @@ def main():
         swipe_duration=500
     )
 
-    explorer = MapExplorer(navigator=navigator, total_rows=4, total_columns=4)
-    service = MapScouterService(explorer, tile_geometry)
+    explorer = MapExplorer(navigator=navigator, total_rows=12, total_columns=12)
+    service = ScreenshotScoutingService(explorer, tile_geometry)
 
     # Set tile-level swipe scale (1 to 3)
-    service.set_swipe_scale(3)
+    service.set_swipe_scale(4)
 
     asyncio.run(service.run())
+
 
 if __name__ == "__main__":
     main()

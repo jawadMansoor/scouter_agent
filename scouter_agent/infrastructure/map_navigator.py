@@ -4,11 +4,12 @@ import asyncio
 from scouter_agent.domain.tile_geometry import TileGeometry
 
 
+
 class Direction(Enum):
-    RIGHT = "right"
-    LEFT = "left"
-    DOWN = "down"
-    UP = "up"
+    RIGHT = "right"   # move left in pixel space (→ in visual map)
+    LEFT = "left"     # move right in pixel space (← in visual map)
+    DOWN = "down"     # move up in pixel space (↓ in visual map)
+    UP = "up"         # move down in pixel space (↑ in visual map)
 
 
 class MapNavigator:
@@ -32,60 +33,64 @@ class MapNavigator:
         self.duration = swipe_duration
         self.swipe_scale = max(1, min(swipe_scale, 3))
 
+        # Direction deltas (row, col)
+        self.tile_deltas = {
+            Direction.RIGHT: (0, -1),   # → right in pixel space (left in tile space)
+            Direction.LEFT:  (0, 1),    # ← left in pixel space (right in tile space)
+            Direction.DOWN:  (-1, 0),   # ↓ down in pixel space (up in tile space)
+            Direction.UP:    (1, 0),    # ↑ up in pixel space (down in tile space)
+        }
+
+        # Anchor tile positions to start swipes from
         self.anchor_map = {
-            Direction.RIGHT: (4, 9),  # swipe from right to left → agent moves right
-            Direction.LEFT: (5, 6),  # swipe from left to right → agent moves left
-            Direction.DOWN: (6, 8),  # swipe from bottom to top → agent moves down
-            Direction.UP: (9, 8),  # swipe from top to bottom → agent moves up
+            Direction.RIGHT: (4, 9),
+            Direction.LEFT: (5, 6),
+            Direction.DOWN: (6, 8),
+            Direction.UP:   (9, 8),
         }
 
     def set_swipe_scale(self, scale: int):
+        """Set the number of tiles to move in a single swipe."""
         self.swipe_scale = max(1, min(scale, 3))
 
-    async def swipe_by_tiles(self, dx: int, dy: int, origin_tile: Tuple[int, int]):
+    async def swipe_by_tiles(self, delta_row: int, delta_col: int, origin_tile: Tuple[int, int]):
         """
-        Swipe using a vector of (dx, dy) tiles from a given origin tile,
-        scaled by swipe_scale.
+        Swipe using a (delta_row, delta_col) from a given origin tile, scaled by swipe_scale.
+
+        :param delta_row: Vertical motion in tile space
+        :param delta_col: Horizontal motion in tile space
+        :param origin_tile: (row, col) tuple of starting tile
         """
-        scaled_dx = dx * self.swipe_scale
-        scaled_dy = dy * self.swipe_scale
+        scaled_row = delta_row * self.swipe_scale
+        scaled_col = delta_col * self.swipe_scale
 
-        print(f"[SWIPE_BY_TILES] Scaled vector: ({scaled_dx}, {scaled_dy})")
+        start_row, start_col = origin_tile
+        end_row = start_row + scaled_row
+        end_col = start_col + scaled_col
 
-        start_tile = origin_tile
-        end_tile = (
-            origin_tile[0] + scaled_dy,  # row shift
-            origin_tile[1] + scaled_dx   # column shift
-        )
+        start_px = self.geometry.tile_to_pixel((start_row, start_col))
+        end_px = self.geometry.tile_to_pixel((end_row, end_col))
 
-        start_px = self.geometry.tile_to_pixel(start_tile)
-        end_px = self.geometry.tile_to_pixel(end_tile)
-
-        print(f"[SWIPE_BY_TILES] From tile: {start_tile} → {end_tile}, {scaled_dx}")
+        print(f"[SWIPE_BY_TILES] From tile: ({start_row}, {start_col}) → ({end_row}, {end_col})")
         print(f"                 Pixel: {start_px} → {end_px}\n")
 
         await self.swipe_executor(*start_px, *end_px, self.duration)
 
-
     async def swipe(self, direction: Direction):
-        delta = {
-            Direction.RIGHT: (1, 0),
-            Direction.LEFT: (-1, 0),
-            Direction.DOWN: (0, 1),
-            Direction.UP: (0, -1)
-        }[direction]
+        """
+        Perform a swipe in the given direction using anchor-based tile positions.
+        """
+        delta_row, delta_col = self.tile_deltas[direction]
 
-        start_tile = self.anchor_map[direction]
-        end_tile = (
-            start_tile[0] + delta[0] * self.swipe_scale,  # row (y)
-            start_tile[1] + delta[1] * self.swipe_scale  # col (x)
-        )
-        print(f"swipe calculated by {delta[0]} * {self.swipe_scale} =  {delta[0] * self.swipe_scale}")
+        anchor_row, anchor_col = self.anchor_map[direction]
+        end_row = anchor_row + delta_row * self.swipe_scale
+        end_col = anchor_col + delta_col * self.swipe_scale
 
-        start_px = self.geometry.tile_to_pixel(start_tile)
-        end_px = self.geometry.tile_to_pixel(end_tile)
+        start_px = self.geometry.tile_to_pixel((anchor_row, anchor_col))
+        end_px = self.geometry.tile_to_pixel((end_row, end_col))
 
-        print(f"[SWIPE] Direction: {direction.name} | From tile: {start_tile} → {end_tile}")
-        print(f"         Pixel: {start_px} → {end_px}\n")
+        print(f"[SWIPE] Direction: {direction.name}")
+        print(f"        From tile: ({anchor_row}, {anchor_col}) → ({end_row}, {end_col})")
+        print(f"        Pixel: {start_px} → {end_px}\n")
 
         await self.swipe_executor(*start_px, *end_px, self.duration)

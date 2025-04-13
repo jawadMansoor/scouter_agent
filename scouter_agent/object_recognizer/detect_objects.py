@@ -27,6 +27,17 @@ async def swipe(x1, y1, x2, y2, duration=500):
     process = await asyncio.create_subprocess_shell(command)
     await process.wait()
 
+def detect_objects_in_image(image):
+    """
+    Placeholder for object detection.
+    Returns list of dicts with 'label', 'confidence', 'bbox' keys.
+    """
+    # Mock example
+    return [
+        {"label": "gold", "confidence": 0.85, "bbox": (1032, 875, 1184, 1024)},
+        {"label": "enemy", "confidence": 0.76, "bbox": (800, 600, 900, 700)},
+    ]
+
 
 # Asynchronous function to capture a screenshot
 async def capture_screenshot(filename):
