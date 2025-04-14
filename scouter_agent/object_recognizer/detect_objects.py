@@ -6,19 +6,20 @@ import asyncio
 
 from pathlib import Path
 TEMP_DIR = Path(__file__).resolve().parent.parent.parent / "temp"
+TEMP_SCREENSHOT_PATH = TEMP_DIR / "capture.png"
 
 def capture_screen(r, c):
     file_path = TEMP_DIR / f"screen_{r}_{c}.png"
-    print(file_path)
+    # print(file_path)
     subprocess.call(f"adb exec-out screencap -p > {file_path}", shell=True)
     return ignore_borders(cv2.imread(str(file_path)))
 
 def ignore_borders(image):
     image_shape = image.shape
-    clip_right = int(0.037 * image_shape[0])
-    clip_left = int(0.04 * image_shape[0])
-    clip_bot = int(0.08 * image_shape[1])
-    clip_top = int(0.08 * image_shape[1])
+    clip_right = int(0.08 * image_shape[0])
+    clip_left = int(0.08 * image_shape[0])
+    clip_bot = int(0.15 * image_shape[1])
+    clip_top = int(0.2 * image_shape[1])
     image_out = image[clip_top:-clip_bot, clip_right:-clip_left, :]
     return image_out
 
@@ -48,15 +49,11 @@ async def capture_screenshot(filename):
 
 def capture_fullscreen():
     """Captures the full screen and returns a processed image."""
-    from datetime import datetime
-    from pathlib import Path
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    file_path = TEMP_DIR / f"capture_{timestamp}.png"
 
-    subprocess.call(f"adb exec-out screencap -p > {file_path}", shell=True)
-    image = cv2.imread(str(file_path))
+    subprocess.call(f"adb exec-out screencap -p > {TEMP_SCREENSHOT_PATH}", shell=True)
+    image = cv2.imread(str(TEMP_SCREENSHOT_PATH))
     if image is not None:
         return ignore_borders(image)
     return None
@@ -103,26 +100,26 @@ if __name__ == "__main__":
 # def read_text(tile):
 #     return None
 #
-# def swipe_right():
-#     x1 = 500
-#     x2 = 300
-#     y1 = 341
-#     y2 = int((x1 - x2) * -0.495726496 * 1.005 + y1)
-#     swipe(x1, y1, x2, y2, 200)
-#
-# def swipe_bot():
-#     x1 = 500
-#     x2 = 300
-#     y1 = 341
-#     y2 = int((x1 - x2) * 0.495726496 * 1.005 + y1)
-#     swipe(x2, y2, x1, y1, 200)
-#
-# def swipe_left():
-#     x1 = 500
-#     x2 = 300
-#     y1 = 341
-#     y2 = int((x1 - x2) * -0.495726496 * 1.005 + y1)
-#     swipe(x2, y2, x1, y1, 200)
+def swipe_right():
+    x1 = 500
+    x2 = 300
+    y1 = 341
+    y2 = int((x1 - x2) * -0.495726496 * 1.005 + y1)
+    swipe(x1, y1, x2, y2, 200)
+
+def swipe_bot():
+    x1 = 500
+    x2 = 300
+    y1 = 341
+    y2 = int((x1 - x2) * 0.495726496 * 1.005 + y1)
+    swipe(x2, y2, x1, y1, 200)
+
+def swipe_left():
+    x1 = 500
+    x2 = 300
+    y1 = 341
+    y2 = int((x1 - x2) * -0.495726496 * 1.005 + y1)
+    swipe(x2, y2, x1, y1, 200)
 #
 # def map_to_right_edge(r):
 #     # Main loop

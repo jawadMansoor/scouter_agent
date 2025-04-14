@@ -89,8 +89,8 @@ class MapNavigator:
         start_px = self.geometry.tile_to_pixel((anchor_row, anchor_col))
         end_px = self.geometry.tile_to_pixel((end_row, end_col))
 
-        print(f"[SWIPE] Direction: {direction.name}")
-        print(f"        From tile: ({anchor_row}, {anchor_col}) → ({end_row}, {end_col})")
-        print(f"        Pixel: {start_px} → {end_px}\n")
+        # print(f"[SWIPE] Direction: {direction.name}")
+        # print(f"        From tile: ({anchor_row}, {anchor_col}) → ({end_row}, {end_col})")
+        # print(f"        Pixel: {start_px} → {end_px}\n")
 
         await self.swipe_executor(*start_px, *end_px, self.duration)

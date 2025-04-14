@@ -33,13 +33,13 @@ class ScreenshotScoutingService:
         filename = self.output_dir / f"screen_{row}_{col}.png"
 
         if filename.exists():
-            print(f"[✓] Skipping already saved screenshot: {filename.name}")
+            # print(f"[✓] Skipping already saved screenshot: {filename.name}")
             return
 
         image = capture_fullscreen()
         if image is None:
-            print(f"[✗] Failed to capture screenshot at tile ({row}, {col})")
+            # print(f"[✗] Failed to capture screenshot at tile ({row}, {col})")
             return
 
         cv2.imwrite(str(filename), image)
-        print(f"[📸] Saved screenshot: {filename.name}")
+        # print(f"[📸] Saved screenshot: {filename.name}")

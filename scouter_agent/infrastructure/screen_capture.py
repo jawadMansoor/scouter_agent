@@ -25,7 +25,7 @@ class ScreenshotService:
         filepath = self.output_dir / filename
         cv2.imwrite(str(filepath), image)
 
-        print(f"[SCREENSHOT] Saved {filepath}")
+        # print(f"[SCREENSHOT] Saved {filepath}")
         return filepath
 
     def get_current_timestamped_name(self) -> str:

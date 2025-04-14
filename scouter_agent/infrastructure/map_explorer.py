@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from datetime import datetime
 import cv2
+from tqdm import tqdm
+
 
 class MapExplorer:
     def __init__(
@@ -27,24 +29,26 @@ class MapExplorer:
         """
         Traverse the entire map using serpentine strategy with stride, capturing a screenshot at each center tile.
         """
-        for row in range(0, self.total_rows, self.stride):
-            if (row // self.stride) % 2 == 0:
-                col_range = range(0, self.total_columns, self.stride)
-                direction = Direction.RIGHT
-            else:
-                col_range = range(self.total_columns - 1, -1, -self.stride)
-                direction = Direction.LEFT
+        total_steps = ((self.total_rows // self.stride) * (self.total_columns // self.stride))
+        with tqdm(total=total_steps, desc="🗺️  Scouting Progress", unit="tile") as pbar:
+            for row in range(0, self.total_rows, self.stride):
+                if (row // self.stride) % 2 == 0:
+                    col_range = range(0, self.total_columns, self.stride)
+                    direction = Direction.RIGHT
+                else:
+                    col_range = range(self.total_columns - 1, -1, -self.stride)
+                    direction = Direction.LEFT
 
-            for col in col_range:
-                await self.capture_and_log_tile(row, col)
-                self.visited_tiles.append((row, col))
+                for col in col_range:
+                    await self.capture_and_log_tile(row, col)
+                    self.visited_tiles.append((row, col))
 
-                if (direction == Direction.RIGHT and col + self.stride < self.total_columns) or \
-                   (direction == Direction.LEFT and col - self.stride >= 0):
-                    await self.navigator.swipe(direction)
+                    if (direction == Direction.RIGHT and col + self.stride < self.total_columns) or \
+                       (direction == Direction.LEFT and col - self.stride >= 0):
+                        await self.navigator.swipe(direction)
 
-            if row + self.stride < self.total_rows:
-                await self.navigator.swipe(Direction.DOWN)
+                if row + self.stride < self.total_rows:
+                    await self.navigator.swipe(Direction.DOWN)
 
     async def capture_and_log_tile(self, row: int, col: int):
         from scouter_agent.object_recognizer.detect_objects import capture_fullscreen
@@ -54,8 +58,8 @@ class MapExplorer:
             filename = f"tile_{row}_{col}.png"
             filepath = self.screenshot_dir / filename
             cv2.imwrite(str(filepath), screenshot)
-            print(f"[✓] Saved screenshot for tile ({row}, {col}) → {filepath}")
-        else:
-            print(f"[✗] Failed to capture screenshot for tile ({row}, {col})")
+            # print(f"[✓] Saved screenshot for tile ({row}, {col}) → {filepath}")
+        # else:
+            # print(f"[✗] Failed to capture screenshot for tile ({row}, {col})")
 
 
