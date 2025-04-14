@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 import asyncio
 import cv2
 from tqdm import tqdm
@@ -12,16 +12,14 @@ from scouter_agent.infrastructure.map_navigator import Direction
 
 
 class ScreenshotScoutingService:
-    """Traverse the map, capture full‑screen images, and periodically correct drift
-    by reading the HUD coordinate and issuing corrective swipes.
-    """
+    """Serpentine traversal + full‑screen capture with periodic drift correction."""
 
     def __init__(
         self,
         explorer: MapExplorer,
         tile_geometry: TileGeometry,
         output_dir: Optional[Path] = None,
-        hud_crop: Optional[tuple[int, int, int, int]] = None,
+        hud_crop: Optional[Tuple[int, int, int, int]] = None,
         sanity_interval: int = 100,
     ) -> None:
         self.explorer = explorer
@@ -34,71 +32,62 @@ class ScreenshotScoutingService:
         self.step_counter = 0
         self.total_tiles = explorer.total_rows * explorer.total_columns
 
-        # progress bar is created lazily in run()
+        # bind callback
+        self.explorer.process_tile_fn = self.process_screen
         self._pbar: Optional[tqdm] = None
 
-        # inject callback
-        self.explorer.process_tile_fn = self.process_tile
-
-    # ------------------------------------------------------------------
-    # Public helpers
     # ------------------------------------------------------------------
     def set_swipe_scale(self, scale: int) -> None:
-        """Expose swipe‑scale tuning to main.py"""
         self.explorer.navigator.set_swipe_scale(scale)
 
     # ------------------------------------------------------------------
-    # Core coroutine
-    # ------------------------------------------------------------------
     async def run(self) -> None:
-        """Kick off serpentine exploration with progress bar."""
         self._pbar = tqdm(total=self.total_tiles, desc="Scouting", ncols=80)
         await self.explorer.explore()
         self._pbar.close()
 
     # ------------------------------------------------------------------
-    async def process_tile(self, est_row: int, est_col: int):
-        """Capture screen, correct drift if needed, save image, update bar."""
+    async def process_screen(self, est_row: int, est_col: int):
+        """Capture, optional HUD correction, save image, update bar."""
         self.step_counter += 1
         image = capture_fullscreen()
         if image is None:
             print("[✗] Screen capture failed"); return
 
-        row, col = est_row, est_col  # default to estimate
+        row, col = est_row, est_col
 
-        # periodic HUD sanity‑check
         if self.step_counter % self.sanity_interval == 0:
             gt = read_global_coord(image, self.hud_crop)
-            print("Checking swipe drift")
-            print(f"  GT: {gt} | Est: ({est_row}, {est_col})")
             if gt:
                 gt_row, gt_col = gt
                 err = abs(gt_row - est_row) + abs(gt_col - est_col)
-                print(f"  Error: {err} tiles")
+                print(f"Error: {err}, {est_row-gt_row}, {est_col-gt_col}")
                 if err >= 1:
                     await self._correct_camera(gt_row, gt_col, est_row, est_col)
                     row, col = gt_row, gt_col
-                    print(f"[✔] Corrective swipe applied (err={err} tiles)")
+                    print(f"[✔] Corrected drift (err={err} tiles)")
 
-        # Save screenshot
         fname = self.output_dir / f"screen_{row}_{col}.png"
         cv2.imwrite(str(fname), image)
 
-        # progress bar
-        if self._pbar is not None:
+        if self._pbar:
             self._pbar.update(1)
-            await asyncio.sleep(0)  # yield so tqdm refreshes
+            await asyncio.sleep(0)
 
     # ------------------------------------------------------------------
     async def _correct_camera(self, gt_row: int, gt_col: int, est_row: int, est_col: int):
-        """Physically swipe the map so HUD center aligns with ground truth."""
-        delta_row = gt_row - est_row  # positive → move down in tile space
-        delta_col = gt_col - est_col  # positive → move right in tile space
+        """Swipe exactly the delta in **one‑tile units**, independent of user stride."""
+        d_row = gt_row - est_row   # + → down in tile space
+        d_col = gt_col - est_col   # + → right in tile space
+        if d_row == 0 and d_col == 0:
+            return
 
-        # Use navigator's low‑level swipe_by_tiles from an arbitrary anchor
-        anchor = self.explorer.navigator.anchor_map[Direction.RIGHT]
-        await self.explorer.navigator.swipe_by_tiles(delta_col, delta_row, anchor)
+        navigator = self.explorer.navigator
+        original_scale = navigator.swipe_scale
+        navigator.set_swipe_scale(1)          # force 1‑tile precision
 
-        # Override explorer cursor so traversal continues from GT
-        if hasattr(self.explorer, "override_current_position"):
-            self.explorer.override_current_position(gt_row, gt_col)
+        anchor = navigator.anchor_map[Direction.RIGHT]  # any anchor works
+        await navigator.swipe_by_tiles(d_row, d_col, anchor)
+
+        navigator.set_swipe_scale(original_scale)       # restore user stride
+        self.explorer.override_current_position(gt_row, gt_col)

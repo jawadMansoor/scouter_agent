@@ -17,19 +17,19 @@ def main():
     navigator = MapNavigator(
         swipe_executor=swipe,
         geometry=tile_geometry,
-        swipe_duration=400
+        swipe_duration=500
     )
 
-    explorer = MapExplorer(navigator=navigator, total_rows=1199, total_columns=1199)
+    explorer = MapExplorer(navigator=navigator, total_rows=12, total_columns=12)
     service = ScreenshotScoutingService(
         explorer,
         tile_geometry,
-        hud_crop=(275, 1025, 475, 1070),  # adjust to actual HUD location
+        hud_crop=(0, 0, 600, 1070),  # adjust to actual HUD location
         sanity_interval=1
     )
 
     # Set tile-level swipe scale (1 to 3)
-    service.set_swipe_scale(4)
+    service.set_swipe_scale(2)
 
     asyncio.run(service.run())
 

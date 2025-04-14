@@ -11,10 +11,11 @@ ocr_reader = easyocr.Reader(
     ['en'], gpu=False, verbose=False
 )
 
-# Regex to capture “123,456” (with or without parentheses / spaces)
-coord_regex = re.compile(
-    r"[Xx][: ]\s*(-?\d+)\s+[Yy][: ]\s*(-?\d+)"
+coord_regex_combined = re.compile(
+    r"[Xx]\s*[:=]?\s*(-?\d+).*?[Yy]\s*[:=]?\s*(-?\d+)"
 )
+coord_regex_singleX = re.compile(r"[Xx]\s*[:=]?\s*(-?\d+)")
+coord_regex_singleY = re.compile(r"[Yy]\s*[:=]?\s*(-?\d+)")
 
 # Your tuned HSV bounds  (H,S,V)
 LOWER_HSV = np.array([96, 176, 147], dtype=np.uint8)
@@ -37,7 +38,7 @@ def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
     return thresh
 
-def read_global_coord(full_img_bgr, crop_box=None):
+def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
     """
     Extract (row,col) from HUD text using HSV mask + EasyOCR.
     :param full_img_bgr: full screenshot (BGR)
@@ -57,14 +58,39 @@ def read_global_coord(full_img_bgr, crop_box=None):
     roi_prepped = _hsv_mask(roi)
 
     # EasyOCR expects RGB; provide the thresholded mask as a single‑channel image
-    result = ocr_reader.readtext(roi_prepped, detail=0, paragraph=False)
-    for text in result:
-        m = coord_regex.search(text)
-        if m:
-            try:
-                col = int(m.group(1))  # X is column
-                row = int(m.group(2))  # Y is row
-                return row, col  # return (row, col) order
-            except ValueError:
-                continue
+    results = ocr_reader.readtext(roi_prepped, detail=0, paragraph=False)
+    if debug:
+        for (bbox, text, conf) in results:
+            # bbox is a list of 4 points [(x1,y1), …]
+            print(f"[OCR‑BOX] {bbox} | '{text}' | conf={conf}")
+
+    texts = [r[1] for r in results]  # strip to just strings
+
+    joined = " ".join(texts)
+    m = coord_regex_combined.search(joined)
+    if m:
+        col, row = int(m.group(1)), int(m.group(2))
+        return row, col
+
+    # 2) otherwise look for separate X and Y tokens
+    x_val = y_val = None
+    for text in results:
+        text = text.strip()
+        # Remove any non‑digit chars except minus
+        digits = re.sub(r"[^0-9-]", "", text)
+        if not digits:
+            continue
+        if text.lower().startswith("x"):
+            x_val = int(digits)
+        elif text.lower().startswith("y"):
+            y_val = int(digits)
+        else:
+            # fallback: if we haven't got x or y yet, guess by order
+            if x_val is None:
+                x_val = int(digits)
+            elif y_val is None:
+                y_val = int(digits)
+
+    if x_val is not None and y_val is not None:
+        return y_val, x_val  # (row, col)
     return None
