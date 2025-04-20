@@ -90,7 +90,7 @@ class CalibrationAnnotator:
 if __name__ == '__main__':
     from pathlib import Path
 
-    img_path = Path("your_skeleton_image.png")
+    img_path = Path("C:\\Users\\JM\\Documents\\JM-codeworld\\LSS_automation\\scouter_agent\\temp\\skeleton_image.png")
     image = cv2.imread(str(img_path))
 
     # Example detected corners (replace with actual detection output)

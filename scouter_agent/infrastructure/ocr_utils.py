@@ -18,8 +18,8 @@ coord_regex_singleX = re.compile(r"[Xx]\s*[:=]?\s*(-?\d+)")
 coord_regex_singleY = re.compile(r"[Yy]\s*[:=]?\s*(-?\d+)")
 
 # Your tuned HSV bounds  (H,S,V)
-LOWER_HSV = np.array([96, 176, 147], dtype=np.uint8)
-UPPER_HSV = np.array([101, 236, 248], dtype=np.uint8)
+LOWER_HSV = np.array([62, 28, 49], dtype=np.uint8)
+UPPER_HSV = np.array([127, 255, 255], dtype=np.uint8)
 
 def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
     """Isolate the cyan/teal HUD text and return a clean grayscale image."""
@@ -27,8 +27,8 @@ def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
     mask = cv2.inRange(hsv, LOWER_HSV, UPPER_HSV)
 
     # Optional: dilate to connect thin strokes
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=1)
+    # kernel = np.ones((3, 3), np.uint8)
+    # mask = cv2.dilate(mask, kernel, iterations=1)
 
     # Bitwise‑and keeps only HUD text pixels
     isolated = cv2.bitwise_and(img_bgr, img_bgr, mask=mask)
@@ -36,7 +36,7 @@ def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
 
     # Improve contrast for OCR
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-    return thresh
+    return isolated
 
 def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
     """
@@ -52,7 +52,7 @@ def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
         roi = full_img_bgr[y1:y2, x1:x2]
     else:
         h, w = full_img_bgr.shape[:2]
-        roi = full_img_bgr[int(0.85*h):, :int(0.35*w)]  # fallback guess
+        roi = full_img_bgr[-220:-190, -400:-240, :]  # fallback guess
 
     # Apply HSV isolation
     roi_prepped = _hsv_mask(roi)
@@ -64,20 +64,12 @@ def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
             # bbox is a list of 4 points [(x1,y1), …]
             print(f"[OCR‑BOX] {bbox} | '{text}' | conf={conf}")
 
-    texts = [r[1] for r in results]  # strip to just strings
-
-    joined = " ".join(texts)
-    m = coord_regex_combined.search(joined)
-    if m:
-        col, row = int(m.group(1)), int(m.group(2))
-        return row, col
-
-    # 2) otherwise look for separate X and Y tokens
+    # look for separate X and Y tokens
     x_val = y_val = None
     for text in results:
         text = text.strip()
         # Remove any non‑digit chars except minus
-        digits = re.sub(r"[^0-9-]", "", text)
+        digits = re.sub(r"[^0-9]", "", text)
         if not digits:
             continue
         if text.lower().startswith("x"):

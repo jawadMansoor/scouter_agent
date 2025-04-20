@@ -38,3 +38,8 @@ priority = "supplemental"
 torch = {source = "pytorch_repo"}
 torchvision = {source = "pytorch_repo"}
 torchaudio = {source = "pytorch_repo"}
+
+[tool.poetry.group.dev.dependencies]
+mss = "^10.0.0"
+pywin32 = "^310"
+
