@@ -56,7 +56,7 @@ class ScreenshotScoutingService:
         self._pbar.close()
 
     # ------------------------------------------------------------------
-    async def process_screen(self, est_row: int, est_col: int) -> "np.ndarray":
+    async def process_screen(self, est_row: int, est_col: int, left_to_right: bool) -> "np.ndarray":
         """
         Capture screen, save PNG, update coverage bitmap, enqueue progress.
         Returns the captured frame so MapExplorer can do HUD / boundary logic.
@@ -67,15 +67,29 @@ class ScreenshotScoutingService:
             return frame
 
         hud = self.hud_reader(frame)
+        row_true = est_row # error in row reading is negligible.
         if hud:
-            row_true, col_true = hud
-        else:
-            row_true, col_true = est_row, est_col  # graceful fallback
+            if abs(hud[1] - est_col) < 5:
+                col_true = hud[1]
+            else:
 
+                if not left_to_right:
+                    col_true = est_col-3
+                else:
+                    col_true = est_col+3
+                print(f"hud bad col reading {hud[1]}, using estimated col coords {est_col}{'+3' if left_to_right else '-3'}")
+        else:
+            if not left_to_right:
+                col_true = est_col - 3
+            else:
+                col_true = est_col + 3
+            row_true = est_row  # graceful fallback
+            print(f"hud read failed, using estimated coords ({est_row, est_col})")
+
+        print(f"Final detected coords: {row_true, col_true} ")
         # -------- coverage bitmap -------------------------------------
         tiles = get_tile_bbox_for_object(
-            pixel_bbox=(0, 0, frame.shape[1], frame.shape[0]),
-            geometry=self.tile_geometry,
+            row_true, col_true,
         )
         self.coverage_bitmap.mark([(r+row_true,c+col_true) for r,c in tiles])
         # --------------------------------------------------------------

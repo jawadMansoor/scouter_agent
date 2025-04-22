@@ -41,7 +41,7 @@ def dual_cluster_lines(lines, image_shape):
         coords.append((x1, y1, x2, y2))
 
     angles = np.array(angles, dtype=np.float32)
-    slope_db = DBSCAN(eps=0.1, min_samples=2).fit(angles)
+    slope_db = DBSCAN(eps=0.20, min_samples=2).fit(angles)
     slope_labels = slope_db.labels_
 
     print(f"Slope Clusters Found: {len(set(slope_labels)) - (1 if -1 in slope_labels else 0)}")

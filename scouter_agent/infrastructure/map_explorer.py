@@ -64,24 +64,31 @@ class MapExplorer:
 
     # ------------------------------------------------------------------
     async def _traverse_row(self, base_row: int, left_to_right: bool):
-        cols: Iterable[int] = range(self.col_min, self.col_max, self.horiz_step)
-        if not left_to_right:
-            cols = reversed(list(cols))
+        # cols: Iterable[int] = range(self.col_min, self.col_max, self.horiz_step)
+        # if not left_to_right:
+        #     cols = reversed(list(cols))
 
         direction = Direction.RIGHT if left_to_right else Direction.LEFT
-
-        for base_col in cols:
+        if left_to_right:
+            base_col = self.col_min
+            reader_state = {base_col: 0}
+        while ((base_col < self.col_max) and left_to_right) \
+                or ((base_col > self.col_min) and not left_to_right):
             if self.process_tile_fn:
-                hud_row, hud_col = await self.process_tile_fn(base_row, base_col)
-                base_row, base_col = hud_row, hud_col
+                _, hud_col = await self.process_tile_fn(base_row, base_col, left_to_right)
+                base_col =  hud_col
                 # -------- boundary check --------------------------------
-                if hud_row and hud_col:
+                if hud_col:
                     if (
                         ( left_to_right and hud_col >= self.col_max) or
                         ( not left_to_right and hud_col <= self.col_min)
                     ):
                         print(f"[ROW‑END] HUD col={hud_col} → break")
                         break
+                if base_col in reader_state.keys():
+                    reader_state[base_col] += 1
+                else:
+                    reader_state = {base_col: 0}
                 # ---------------------------------------------------------
 
             # another horizontal swipe needed?
@@ -89,5 +96,14 @@ class MapExplorer:
                     (left_to_right and base_col + self.horiz_step >= self.col_max) or
                     (not left_to_right and base_col <= self.col_min)
             )
+            if reader_state[base_col]>3:
+                print(f"traversal is stuck {reader_state[base_col]}")
+                # the traversal is stuck
+                # this must be at the border
+                break
             if not end_of_row:
                 await self.navigator.swipe(direction)
+
+
+
+

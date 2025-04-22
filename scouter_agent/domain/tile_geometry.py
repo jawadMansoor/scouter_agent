@@ -16,3 +16,7 @@ class TileGeometry:
         pt = np.array([[pixel_coord]], dtype=np.float32)
         tile = cv2.transform(pt, self.inverse_affine)[0][0]
         return float(tile[0]), float(tile[1])
+
+
+class TileGeometryCalibrator:
+    pass

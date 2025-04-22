@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+from scouter_agent.utilities.pipelines.test_tile_edge_pipeline import visualize_tile_edge_detection_steps
+from scouter_agent.infrastructure.capture_devices import AsyncWindowCapture, CaptureConfig
+import asyncio
 
 class CalibrationAnnotator:
     def __init__(self, image, corners):
@@ -90,8 +93,15 @@ class CalibrationAnnotator:
 if __name__ == '__main__':
     from pathlib import Path
 
-    img_path = Path("C:\\Users\\JM\\Documents\\JM-codeworld\\LSS_automation\\scouter_agent\\temp\\skeleton_image.png")
-    image = cv2.imread(str(img_path))
+    game_cap_cfg = CaptureConfig(
+        game_res=(600, 1054),
+        game_anchor="br",  # bottom‑right
+        border_trim=(0.08, 0.16, 0.05, 0.1)  # l,r,b,t
+    )
+    global_cap = AsyncWindowCapture(game_cap_cfg)
+    first_frame = asyncio.run(global_cap.grab())
+    cv2.imwrite("../../temp/raw_frame.png", first_frame)
+    image = visualize_tile_edge_detection_steps(first_frame)
 
     # Example detected corners (replace with actual detection output)
     detected_corners = [(100, 120), (200, 150), (300, 180)]  # Replace with actual

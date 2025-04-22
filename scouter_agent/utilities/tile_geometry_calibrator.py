@@ -1,12 +1,21 @@
 import cv2
 import ast
 from scouter_agent.domain.tile_geometry import TileGeometryCalibrator
+from scouter_agent.infrastructure.capture_devices import AsyncWindowCapture, CaptureConfig
+from scouter_agent.utilities.pipelines.test_tile_edge_pipeline import visualize_tile_edge_detection_steps
+import asyncio
 
 class TileCalibratorGUI:
-    def __init__(self, image_path):
-        self.image_path = image_path
-        self.image = cv2.imread(image_path)
-        self.clone = self.image.copy()
+    def __init__(self):
+        game_cap_cfg = CaptureConfig(
+            game_res=(600, 1054),
+            game_anchor="br",  # bottom‑right
+            border_trim=(0.08, 0.16, 0.05, 0.1)  # l,r,b,t
+        )
+        global_cap = AsyncWindowCapture(game_cap_cfg)
+        self.image =  asyncio.run(global_cap.grab())
+        self.processed_image = visualize_tile_edge_detection_steps(self.image)
+        self.clone = self.processed_image.copy()
         self.calibrator = TileGeometryCalibrator()
         self.window_name = "Tile Calibrator"
         self.font = cv2.FONT_HERSHEY_SIMPLEX
@@ -80,8 +89,8 @@ class TileCalibratorGUI:
 # Example usage
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2:
-        print("Usage: python tile_geometry_calibrator.py <image_path>")
+    if len(sys.argv) < 1:
+        print("Usage: python tile_geometry_calibrator.py")
     else:
-        gui = TileCalibratorGUI(sys.argv[1])
+        gui = TileCalibratorGUI()
         gui.run()

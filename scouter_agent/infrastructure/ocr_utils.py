@@ -3,12 +3,13 @@ import re
 import cv2
 import numpy as np
 import easyocr
-
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 
 ocr_reader = easyocr.Reader(
-    ['en'], gpu=False, verbose=False
+    ['en'], gpu=False, verbose=False,
 )
 
 coord_regex_combined = re.compile(
@@ -18,8 +19,8 @@ coord_regex_singleX = re.compile(r"[Xx]\s*[:=]?\s*(-?\d+)")
 coord_regex_singleY = re.compile(r"[Yy]\s*[:=]?\s*(-?\d+)")
 
 # Your tuned HSV bounds  (H,S,V)
-LOWER_HSV = np.array([62, 28, 49], dtype=np.uint8)
-UPPER_HSV = np.array([127, 255, 255], dtype=np.uint8)
+LOWER_HSV = np.array([94 , 100, 100], dtype=np.uint8)
+UPPER_HSV = np.array([100, 236, 246], dtype=np.uint8)
 
 def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
     """Isolate the cyan/teal HUD text and return a clean grayscale image."""
@@ -30,13 +31,18 @@ def _hsv_mask(img_bgr: np.ndarray) -> np.ndarray:
     # kernel = np.ones((3, 3), np.uint8)
     # mask = cv2.dilate(mask, kernel, iterations=1)
 
+    # Apply Gaussian blur
+
+
     # Bitwise‑and keeps only HUD text pixels
     isolated = cv2.bitwise_and(img_bgr, img_bgr, mask=mask)
+    # blurred_isolated = cv2.GaussianBlur(isolated, (3, 3), 0)
     gray = cv2.cvtColor(isolated, cv2.COLOR_BGR2GRAY)
-
+    # blurred_gray = cv2.GaussianBlur(gray, (3, 3), 0)
     # Improve contrast for OCR
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-    return isolated
+    # blurred_thresh = cv2.GaussianBlur(gray, (3, 3), 0)
+    return isolated, gray, thresh
 
 def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
     """
@@ -52,13 +58,17 @@ def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
         roi = full_img_bgr[y1:y2, x1:x2]
     else:
         h, w = full_img_bgr.shape[:2]
-        roi = full_img_bgr[-220:-190, -400:-240, :]  # fallback guess
+        roi = full_img_bgr[-185:-145, -312:-142, :]  # fallback guess
 
     # Apply HSV isolation
-    roi_prepped = _hsv_mask(roi)
+    isolated, gray, thresh = _hsv_mask(roi)
+    roi_prepped = thresh
+    roi_x_coord = roi_prepped[:,22:100]
+    roi_y_coord =  roi_prepped[:,120:]
 
-    # EasyOCR expects RGB; provide the thresholded mask as a single‑channel image
-    results = ocr_reader.readtext(roi_prepped, detail=0, paragraph=False)
+    # EasyOCR expects RGB; provide the threshold mask as a single‑channel image
+    results = ocr_reader.readtext(roi_prepped, detail=0, paragraph=False,
+                                  allowlist="X:Y123456789")
     if debug:
         for (bbox, text, conf) in results:
             # bbox is a list of 4 points [(x1,y1), …]
@@ -68,7 +78,7 @@ def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
     x_val = y_val = None
     for text in results:
         text = text.strip()
-        # Remove any non‑digit chars except minus
+        # Remove any non‑digit chars
         digits = re.sub(r"[^0-9]", "", text)
         if not digits:
             continue
@@ -82,7 +92,19 @@ def read_global_coord(full_img_bgr, crop_box=None, *, debug=False):
                 x_val = int(digits)
             elif y_val is None:
                 y_val = int(digits)
-
     if x_val is not None and y_val is not None:
+        if y_val >= 110 or x_val >= 110:
+            print("anomalous reading of HUD")
         return y_val, x_val  # (row, col)
+    else:
+        print("couldn't read HUD coord")
+        #read x and y coordinates separately
+        result_x = ocr_reader.readtext(roi_x_coord, detail=0, paragraph=False,
+                                  allowlist="123456789")
+        result_y = ocr_reader.readtext(roi_y_coord, detail=0, paragraph=False,
+                                       allowlist="123456789")
+        if x_val is not None and y_val is not None:
+            y_val = int(result_y)
+            x_val = int(result_x)
+            return y_val, x_val
     return None

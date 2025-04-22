@@ -5,7 +5,7 @@ from scouter_agent.infrastructure.map_navigator import MapNavigator
 from scouter_agent.domain.tile_geometry import TileGeometry
 from scouter_agent.screen_controller.screen_gestures import swipe
 from scouter_agent.domain.row_tracker import RowTracker
-from scouter_agent.infrastructure.capture_devices import WindowCapture
+from scouter_agent.infrastructure.capture_devices import AsyncWindowCapture, CaptureConfig
 from scouter_agent.utilities.coverage_bitmap import CoverageBitmap
 from scouter_agent.infrastructure.ocr_utils import read_global_coord
 import asyncio
@@ -18,10 +18,14 @@ def main():
     MODEL_PATH = Path(__file__).parent / "scouter_agent" / "models" / "tile_affine_model.npy"
     affine_matrix = np.load(str(MODEL_PATH))
     tile_geometry = TileGeometry(affine_matrix)
-
-    capture = WindowCapture()
-    first_frame = asyncio.run(capture.grab())  # sync example
-    start_rc = read_global_coord(first_frame) or (0, 0)
+    game_cap_cfg  = CaptureConfig(
+        game_res=(634, 1101),
+        game_anchor="br",  # bottom‑right
+        border_trim=(0.08, 0.16, 0.05, 0.1)  # l,r,b,t
+    )
+    global_cap = AsyncWindowCapture(game_cap_cfg)
+    first_frame = asyncio.run(global_cap.grab())  # sync example
+    start_rc = (0, 0) # read_global_coord(first_frame) or
 
     row_tracker = RowTracker(
         hud_reader=read_global_coord,
@@ -43,13 +47,13 @@ def main():
         row_step=3,
         process_tile_fn=None,  # your fn
         row_tracker=row_tracker,
-        capture_device=capture,
+        capture_device=global_cap,
     )
 
     service = ScreenshotScoutingService(
         explorer,
         tile_geometry,
-        capture_device=capture,
+        capture_device=global_cap,
         coverage_bitmap=coverage_bitmap,
         hud_reader=read_global_coord,
     )

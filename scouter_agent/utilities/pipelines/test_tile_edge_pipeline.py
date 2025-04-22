@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 from skimage.morphology import skeletonize
 
 
-def visualize_tile_edge_detection_steps(image_path: str):
-    image = cv2.imread(image_path)
+def visualize_tile_edge_detection_steps(image: str):
     if image is None:
         raise FileNotFoundError(f"Image not found at {image_path}")
 
@@ -49,8 +48,9 @@ def visualize_tile_edge_detection_steps(image_path: str):
 
     plt.tight_layout()
     plt.show()
-    cv2.imwrite("C:\\Users\\JM\Documents\\JM-codeworld\\LSS_automation\\scouter_agent\\temp\\skeleton_image.png",
-                 skeleton)
+    cv2.imwrite("../../temp/skeleton_image.png",
+                skeleton)
+    return skeleton
 
 if __name__ == "__main__":
     import sys
