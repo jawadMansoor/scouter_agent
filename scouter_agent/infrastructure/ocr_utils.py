@@ -9,7 +9,7 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 
 
 ocr_reader = easyocr.Reader(
-    ['en'], gpu=False, verbose=False,
+    ['en'], gpu=True, verbose=False,
 )
 
 coord_regex_combined = re.compile(
