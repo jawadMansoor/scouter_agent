@@ -1,63 +1,76 @@
+import pyautogui
 import numpy as np
 
-def compute_roi(img: np.ndarray, cfg) -> np.ndarray:
+
+def compute_roi(img: np.ndarray, config) -> np.ndarray:
     """
-    Compute Region of Interest (ROI) from an image based on config.
-    Applies:
-      1. manual_roi if provided.
-      2. game_res + anchor if available.
-      3. Fallback to border_trim percentages.
+    Centralized ROI cropping logic.
     """
-    if cfg.manual_roi:
-        x1, y1, x2, y2 = cfg.manual_roi
+    if config.manual_roi:
+        x1, y1, x2, y2 = config.manual_roi
         core = img[y1:y2, x1:x2]
 
-    elif cfg.game_res:
-        gw, gh = cfg.game_res
+    elif config.game_res:
+        gw, gh = config.game_res
         H, W = img.shape[:2]
-        anchors = {
-            "tl": (0, 0),
-            "tr": (W - gw, 0),
-            "bl": (0, H - gh),
-            "br": (W - gw, H - gh),
-        }
-        x1, y1 = anchors.get(cfg.game_anchor.lower(), (0, 0))
+
+        anchor = config.game_anchor.lower()
+        if anchor == "tl":
+            x1, y1 = 0, 0
+        elif anchor == "tr":
+            x1, y1 = max(0, W - gw), 0
+        elif anchor == "bl":
+            x1, y1 = 0, max(0, H - gh)
+        elif anchor == "br":
+            x1, y1 = max(0, W - gw), max(0, H - gh)
+        else:
+            raise ValueError(f"Invalid anchor '{anchor}'")
+
         core = img[y1:y1 + gh, x1:x1 + gw]
 
     else:
-        l, r, b, t = cfg.border_trim
-        H, W = img.shape[:2]
+        l, r, b, t = config.border_trim
+        H, W, _ = img.shape
         x1, x2 = int(W * l), int(W * (1 - r))
         y1, y2 = int(H * t), int(H * (1 - b))
         core = img[y1:y2, x1:x2]
 
-    # Apply final top/bottom trimming universally
-    l, r, b, t = cfg.border_trim
-    H, W = core.shape[:2]
-    x1, x2 = int(W * l), int(W * (1 - r))
+    # Always apply final border_trim
+    l, r, b, t = config.border_trim
+    H, W, _ = core.shape
     y1, y2 = int(H * t), int(H * (1 - b))
+    x1, x2 = int(W * l), int(W * (1 - r))
     return core[y1:y2, x1:x2]
 
 
-def get_game_center(window_rect: tuple[int, int, int, int], cfg) -> tuple[int, int]:
-    """
-    Calculate the center point of the game area within a window.
-    """
-    X0, Y0, W, H = window_rect
+def get_game_center(window_title: str, config) -> tuple[int, int]:
+    window = pyautogui.getWindowsWithTitle(window_title)
+    if not window:
+        raise Exception(f"❌ No window found with title containing '{window_title}'")
+    window = window[0]
 
-    if cfg.game_res:
-        gw, gh = cfg.game_res
-        anchors = {
-            "tl": (X0, Y0),
-            "tr": (X0 + (W - gw), Y0),
-            "bl": (X0, Y0 + (H - gh)),
-            "br": (X0 + (W - gw), Y0 + (H - gh)),
-        }
-        x1, y1 = anchors.get(cfg.game_anchor.lower(), (X0, Y0))
+    W, H = window.width, window.height
+    X0, Y0 = window.left, window.top
+
+    if config.game_res:
+        gw, gh = config.game_res
+        anchor = config.game_anchor.lower()
+
+        if anchor == "tl":
+            x1, y1 = X0, Y0
+        elif anchor == "tr":
+            x1, y1 = X0 + (W - gw), Y0
+        elif anchor == "bl":
+            x1, y1 = X0, Y0 + (H - gh)
+        elif anchor == "br":
+            x1, y1 = X0 + (W - gw), Y0 + (H - gh)
+        else:
+            raise ValueError(f"Invalid anchor '{anchor}'")
+
         center_x = x1 + gw // 2
         center_y = y1 + gh // 2
     else:
-        l, r, b, t = cfg.border_trim
+        l, r, b, t = config.border_trim
         x1 = X0 + int(W * l)
         x2 = X0 + int(W * (1 - r))
         y1 = Y0 + int(H * t)
