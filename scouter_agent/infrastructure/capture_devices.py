@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Optional
 import pygetwindow as gw
 import win32con, win32gui
-
+from scouter_agent.utilities.roi_utils import compute_roi
 
 import numpy as np
 import cv2
@@ -97,7 +97,7 @@ class WindowCapture:
         if isinstance(result, Exception):
             raise result
         frame = result[:, :, :3]                 # discard alpha
-        return self._crop_if_needed(cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR))
+        return compute_roi(frame, self.cfg)
 
     async def grab_async(self) -> np.ndarray:
         return await asyncio.to_thread(self.grab)
@@ -123,50 +123,6 @@ class WindowCapture:
         print("[WindowCapture] No window match; falling back to primary monitor.")
         with mss.mss() as sct:
             return sct.monitors[1]               # full‑screen
-
-    def _crop_if_needed(self, img: np.ndarray) -> np.ndarray:
-        """
-        1. If manual_roi  → use it.
-        2. Else if game_res is set → take the w×h block anchored as requested.
-        3. Else fall back to percentage border_trim.
-        After that, still apply border_trim (top/bottom) for HUD & bottom bar.
-        """
-        if self.cfg.manual_roi:
-            x1, y1, x2, y2 = self.cfg.manual_roi
-            core = img[y1:y2, x1:x2]
-
-        elif self.cfg.game_res:
-            gw, gh = self.cfg.game_res
-            H, W = img.shape[:2]
-
-            anchor = self.cfg.game_anchor.lower()
-            if anchor == "tl":
-                x1, y1 = 0, 0
-            elif anchor == "tr":
-                x1, y1 = max(0,W - gw), 0
-            elif anchor == "bl":
-                x1, y1 = 0, max(0,H - gh)
-            elif anchor == "br":
-                x1, y1 = max(0,W - gw), max(0,H - gh)
-            else:
-                raise ValueError(f"bad anchor {anchor!r}")
-
-            core = img[y1:y1 + gh, x1:x1 + gw]
-
-        else:
-            # last‑resort % crop across all four borders
-            l, r, b, t = self.cfg.border_trim
-            H, W, _ = img.shape
-            x1, x2 = int(W * l), int(W * (1 - r))
-            y1, y2 = int(H * t), int(H * (1 - b))
-            core = img[y1:y2, x1:x2]
-
-        # still strip variable top/bottom UI (percentages usually work)
-        l, r, b, t = self.cfg.border_trim
-        H, W, _ = core.shape
-        y1, y2 = int(H * t), int(H * (1 - b))
-        x1, x2 = int(W * l), int(W * (1 - r))
-        return core[y1:y2, x1:x2]
 
 
 # ---------------------------------------------------------------------------#
