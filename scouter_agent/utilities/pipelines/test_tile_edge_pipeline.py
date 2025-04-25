@@ -6,13 +6,13 @@ from skimage.morphology import skeletonize
 
 def visualize_tile_edge_detection_steps(image: str):
     if image is None:
-        raise FileNotFoundError(f"Image not found at {image_path}")
+        raise FileNotFoundError(f"Image not found")
 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # Updated wider HSV thresholds
-    lower_white = np.array([0, 10, 160])
-    upper_white = np.array([30, 80, 255])
+    lower_white = np.array([0, 0, 200])
+    upper_white = np.array([20, 86, 247])
     mask = cv2.inRange(hsv, lower_white, upper_white)
 
     # Skip morphology to preserve thin features

@@ -11,6 +11,8 @@ from scouter_agent.infrastructure.ocr_utils import read_global_coord
 import asyncio
 import numpy as np
 from pathlib import Path
+from scouter_agent.screen_controller.desktop_zoom_controller import DesktopZoomController
+from scouter_agent.infrastructure.capture_devices import CaptureConfig
 
 
 def main():
@@ -18,12 +20,16 @@ def main():
     MODEL_PATH = Path(__file__).parent / "scouter_agent" / "models" / "tile_affine_model.npy"
     affine_matrix = np.load(str(MODEL_PATH))
     tile_geometry = TileGeometry(affine_matrix)
-    game_cap_cfg  = CaptureConfig(
-        game_res=(634, 1101),
-        game_anchor="br",  # bottom‑right
-        border_trim=(0.08, 0.16, 0.05, 0.1)  # l,r,b,t
+    config = CaptureConfig(
+        title="BlueStacks",
+        game_res=(720, 1280),  # Adjust if your Bluestacks game resolution differs
+        game_anchor="br",  # Assuming bottom-right anchoring
+        border_trim=(0.08, 0.16, 0.05, 0.1)
     )
-    global_cap = AsyncWindowCapture(game_cap_cfg)
+
+    zoomer = DesktopZoomController(config=config, scroll_steps=2, scroll_amount=-10)
+    zoomer.zoom_out()
+    global_cap = AsyncWindowCapture(config)
     first_frame = asyncio.run(global_cap.grab())  # sync example
     start_rc = (0, 0) # read_global_coord(first_frame) or
 

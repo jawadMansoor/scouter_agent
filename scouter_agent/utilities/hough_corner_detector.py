@@ -6,8 +6,9 @@ from sklearn.cluster import DBSCAN
 import random
 
 
-def detect_hough_lines(skeleton_img, min_line_length=40, max_line_gap=3):
-    lines = cv2.HoughLinesP(
+def detect_hough_lines(skeleton_img, min_line_length=50, max_line_gap=300  ):
+    cdstP = cv2.cvtColor(skeleton_img, cv2.COLOR_GRAY2BGR)
+    linesP = cv2.HoughLinesP(
         skeleton_img,
         rho=1,
         theta=np.pi / 180,
@@ -15,7 +16,14 @@ def detect_hough_lines(skeleton_img, min_line_length=40, max_line_gap=3):
         minLineLength=min_line_length,
         maxLineGap=max_line_gap
     )
-    return lines
+    if linesP is not None:
+        for i in range(0, len(linesP)):
+            l = linesP[i][0]
+            cv2.line(cdstP, (l[0], l[1]), (l[2], l[3]), (0, 0, 255), 3, cv2.LINE_AA)
+    cv2.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP)
+    cv2.waitKey(0)
+
+    return linesP
 
 
 def line_to_angle_intercept(x1, y1, x2, y2):
@@ -60,7 +68,7 @@ def dual_cluster_lines(lines, image_shape):
 
     for slope_label, lines_data in grouped.items():
         intercept_vals = np.array([[i[0] / image_shape[0]] for i in lines_data], dtype=np.float32)  # normalized
-        intercept_db = DBSCAN(eps=0.03, min_samples=2).fit(intercept_vals)
+        intercept_db = DBSCAN(eps=0.01, min_samples=2).fit(intercept_vals)
         intercept_labels = intercept_db.labels_
 
         print(f"  Intercept Clusters in Slope Group {slope_label}: {len(set(intercept_labels)) - (1 if -1 in intercept_labels else 0)}")
